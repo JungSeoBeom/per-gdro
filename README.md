@@ -1,75 +1,74 @@
-# Per-Group Distributionally Robust Optimization with Learnable Ambiguity Set Sizes via Bilevel Optimization
+# Per-Group DRO (Per-GDRO)
 
-This repository implements **Per-Group Distributionally Robust Optimization (Per-Group DRO)**, a method for improving worst-group performance by learning group-specific ambiguity set sizes (epsilons) via **Bilevel Optimization**.
+This repository contains the implementation used in our **Optimization Letters** submission.
 
-It compares the performance of the following algorithms:
-*   **ERM** (Empirical Risk Minimization)
-*   **GroupDRO** (Group Distributionally Robust Optimization)
-*   **PerGroupDRO** (Proposed Method: Per-Group DRO)
+- Submission snapshot (tag): `v1.0-optimlett`
 
-## Project Structure
+## Overview
 
-```
-Per_GroupDRO/
-├── data/                      # Data loading scripts
-│   ├── cmnist_data.py         # Colored MNIST dataset loader
-│   ├── compas_data.py         # COMPAS dataset loader # not included in the paper
-│   ├── waterbirds_data.py     # Waterbirds dataset loader # not included in the paper
-│   ├── synthetic_data.py      # Synthetic dataset generation 
-│   ├── data_loader.py         # General data loading utilities
-│   └── data.py                # Core data handling functions
-├── run.py                     # Main entry point for training and evaluation
-├── train_single.py            # Training loop for standard single-run experiments
-├── train_bilevel.py           # Implementation of Bilevel Optimization for hyperparameter search
-├── models.py                  # Neural network architectures (MLP, ResNet, etc.)
-├── groupdro.py                # GroupDRO algorithm implementation
-├── per_gdro.py                # PerGroupDRO algorithm implementation
-├── erm.py                     # ERM algorithm implementation
-└── utils.py                   # Utility functions (seeding, logging, etc.)
-```
+Implemented methods:
+- ERM
+- GroupDRO (Sagawa et al., 2020)
+- Per-GDRO (Per-Group Distributionally Robust Optimization)
+
+Supported Datasets:
+- **Synthetic**: Multidimensional Gaussian mixture with distribution shifts.
+- **CMNIST**: Modified Colored MNIST with variable spurious correlations and geometric shifts.
+
+The repository includes scripts for:
+- Single-run training: `train_single.py`
+- Bilevel Hyperparameter Optimization (HPO): `train_bilevel.py`
 
 ## Requirements
 
-*   Python 3.8+
-*   PyTorch
-*   NumPy
-*   scikit-optimize (for bilevel optimization)
-*   pandas
+Install the necessary dependencies:
 
-## Usage
-
-Measurement and training are primarily triggered via `run.py`.
-
-### Arguments
-
-*   `-d`, `--dataset`: Dataset to use. Choices: `synthetic`, `compas`, `adult`, `cmnist`.
-*   `-a`, `--algorithm`: Algorithm to run. Choices: `ERM`, `GroupDRO`, `PerGroupDRO`.
-*   `--bilevel`: Add this flag to run bilevel hyperparameter optimization.
-*   `--data_dir`: Root directory containing the datasets (default: `D:\seobeom`).
-*   `--n_epochs`: Number of training epochs.
-*   `--batch_size`: Batch size for training.
-*   `--seed`: Random seed for reproducibility.
-*   `--lr`: Learning rate.
-*   `--weight_decay`: Weight decay (L2 regularization).
-
-### Examples
-
-Below are example commands to run experiments across different datasets and algorithms.
-
-**1. ERM on Colored MNIST (CMNIST)**
-Runs ERM with bilevel optimization on the CMNIST dataset.
 ```bash
-python run.py -d cmnist -a ERM --bilevel --n_epochs 50 --seed 42 --data_dir "D:\seobeom" --batch_size 128
+pip install -r requirements.txt
 ```
 
-**2. GroupDRO on Synthetic Data**
-Runs GroupDRO with bilevel optimization on a synthetic dataset.
+## Quickstart
+
+### 1. Training (Single Run)
+
+Run a single experiment with specified hyperparameters.
+
+**Synthetic Dataset (ERM):**
 ```bash
-python run.py -d synthetic -a GroupDRO --bilevel --n_epochs 50 --seed 42 --data_dir "D:\seobeom" --batch_size 128
+python run.py --dataset synthetic --algorithm ERM --n_epochs 50 --lr 0.01
 ```
 
-**3. Per-Group DRO on CMNIST**
-Runs Per-Group DRO with bilevel optimization, specifying specific learning rate and weight decay values.
+**CMNIST (Per-Group DRO):**
 ```bash
-python run.py -d cmnist -a PerGroupDRO --bilevel --n_epochs 50 --seed 42 --data_dir "D:\seobeom" --batch_size 128 --lr 0.001 --weight_decay 0.1
+# Note: Data will be downloaded/generated in the specified --data_dir
+python run.py --dataset cmnist --algorithm PerGroupDRO --data_dir "./data" --n_epochs 20 --rho 0.1 --eps 0.1 0.1 0.1 0.1
 ```
+
+### 2. Bilevel Optimization (HPO)
+
+Run hyperparameter optimization using `scikit-optimize` to find the best configuration.
+
+```bash
+python run.py --dataset synthetic --algorithm GroupDRO --bilevel --n_epochs 100 --lr 0.01
+```
+
+## Repository Structure
+
+- `run.py`: Main entry point for experiments.
+- `train_single.py`: Training loop for a single configuration.
+- `train_bilevel.py`: Bilevel optimization loop.
+- `models.py`: Model architectures (MLP for Synthetic, ResNet18 for CMNIST).
+- `per_gdro.py`: Implementation of the Per-Group DRO algorithm.
+- `groupdro.py`: Implementation of GroupDRO.
+- `erm.py`: Implementation of Empirical Risk Minimization.
+- `data/`: Data loaders and generators.
+  - `synthetic_data.py`: Generates synthetic Gaussian data.
+  - `cmnist_data.py`: Handles Modified colored MNIST.
+
+## Reproducibility
+
+Random seeds can be set via the `--seed` argument (default: 42) to ensure deterministic behavior.
+
+## Contact
+
+- Seobeom Jung — nasnaga1628@gmail.com
