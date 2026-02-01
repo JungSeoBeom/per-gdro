@@ -61,9 +61,13 @@ python run.py --dataset synthetic --algorithm GroupDRO --bilevel --n_epochs 100 
 - `per_gdro.py`: Implementation of the Per-Group DRO algorithm.
 - `groupdro.py`: Implementation of GroupDRO.
 - `erm.py`: Implementation of Empirical Risk Minimization.
+- `utils.py`: Utility functions for seed setting, logging, and result tracking.
 - `data/`: Data loaders and generators.
   - `synthetic_data.py`: Generates synthetic Gaussian data.
   - `cmnist_data.py`: Handles Modified colored MNIST.
+  - `data.py`: Defines dataset metadata and configurations (loss functions, purposes).
+  - `data_loader.py`: Creates standardized data loaders (mixed and group-based) for all datasets.
+
 
 ## Reproducibility
 
