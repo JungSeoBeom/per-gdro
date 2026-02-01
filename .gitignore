@@ -1,0 +1,79 @@
+########################################
+# Python cache / build artifacts
+########################################
+__pycache__/
+*.py[cod]
+*.so
+
+########################################
+# Virtual environments
+########################################
+.venv/
+venv/
+env/
+conda_env/
+
+########################################
+# Jupyter (if any)
+########################################
+.ipynb_checkpoints/
+
+########################################
+# OS / IDE files
+########################################
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+########################################
+# Secrets / environment variables
+########################################
+.env
+.env.*
+*.key
+*.pem
+
+########################################
+# Experiment outputs (logs / checkpoints / results)
+########################################
+logs/
+log/
+runs/
+results/
+outputs/
+output/
+checkpoints/
+ckpt/
+wandb/
+mlruns/
+tensorboard/
+tb/
+
+# Model / checkpoint file extensions
+*.pt
+*.pth
+*.ckpt
+*.npz
+
+########################################
+# Raw datasets / downloads (keep loaders tracked)
+# NOTE: Your `data/` directory contains loader scripts, so do NOT ignore `data/` itself.
+########################################
+datasets/
+dataset/
+raw_data/
+data_raw/
+downloads/
+
+# If you store real data under `data/`, ignore only subfolders:
+data/raw/
+data/downloads/
+data/cache/
+data/processed/
+
+########################################
+# Exclude code files NOT included in the paper (public repo)
+########################################
+data/compas_data.py
+data/waterbirds_data.py
