@@ -174,7 +174,7 @@ def run_bilevel_optimization(args, train_loader_dict, val_loader_dict, test_load
     # Case 1: PerGroupDRO -> ONLY optimize Rho and Epsilon
     if args.algorithm == 'PerGroupDRO':
         # [Req] Only Rho and Eps (LR, WD, etc. are fixed from args)
-        space.append(Real(0.0, 0.5, name='rho'))
+        space.append(Real(1e-8, 0.5, name='rho'))
                
         if args.dataset == 'synthetic':# [Req] Eps range changed to 0.0 - 0.5
             for i in range(args.n_groups): 
@@ -182,28 +182,28 @@ def run_bilevel_optimization(args, train_loader_dict, val_loader_dict, test_load
                 eps_max = 2.0
         elif args.dataset == 'cmnist':
             for i in range(args.n_groups):
-                space.append(Real(0.0, 0.1, name=f'eps{i}'))
-                eps_max = 0.1
+                space.append(Real(0.0, 0.05, name=f'eps{i}'))
+                eps_max = 0.05
         else:
             for i in range(args.n_groups):
                 space.append(Real(0.0, 1.0, name=f'eps{i}'))
                 eps_max = 1.0
     # Case 2: Other Algorithms (ERM, GroupDRO) -> Optimize LR, WD, etc.
-    else:
-        # Standard HPO parameters
-        space.extend([
-            Real(1e-4, 1e-2, prior="log-uniform", name="lr"),
-            Real(1e-5, 1e-1, prior="log-uniform", name="weight_decay"),
-            Real(0.0, 0.5, name="eta_min_ratio"),
-        ])
+    
+    # Standard HPO parameters
+    space.extend([
+        Real(1e-4, 1e-2, prior="log-uniform", name="lr"),
+        Real(1e-5, 1e-1, prior="log-uniform", name="weight_decay"),
+        Real(0.0, 0.5, name="eta_min_ratio"),
+    ])
+    
+    # [Req] Add MLP params ONLY for tabular data
+    if is_tabular:
+        space.insert(0, Integer(16, 128, name="hsize"))
+        space.insert(0, Integer(1, 3, name="n_layers"))
         
-        # [Req] Add MLP params ONLY for tabular data
-        if is_tabular:
-            space.insert(0, Integer(16, 128, name="hsize"))
-            space.insert(0, Integer(1, 3, name="n_layers"))
-            
-        if args.algorithm == 'GroupDRO':
-            space.append(Real(1e-3, 1.0, prior="log-uniform", name='eta_q'))
+    if args.algorithm == 'GroupDRO':
+        space.append(Real(1e-3, 1.0, prior="log-uniform", name='eta_q'))
 
     # -----------------------------------------------------------
     # [Mod] Construct Initial Points (x0) matching the space
@@ -211,39 +211,39 @@ def run_bilevel_optimization(args, train_loader_dict, val_loader_dict, test_load
     x0 = []
     
     # 1. Init Points for PerGroupDRO (Rho, Eps...)
-    if args.algorithm == 'PerGroupDRO':
-        # Create varying starting points for rho and eps
-        # Point 1: rho=1.0, eps=0.1
-        x0 = []
-        for i in range(10):
-            x0.append([np.random.rand()*0.5] + [eps_max/np.random.randint(1,11) for _ in range(args.n_groups)])
-            
-    # 2. Init Points for Others (LR, WD...)
-    else:
-        init_lrs = [1e-2, 5e-3, 1e-2, 1e-3]
-        init_wds = [1e-5, 1e-4, 1e-5, 1e-5]
-        init_eta_mins = [0.0, 0.0, 0.1, 0.0]
+    #args.algorithm == 'PerGroupDRO':
+    # Create varying starting points for rho and eps
+    # Point 1: rho=1.0, eps=0.1
+
+    init_lrs = (10 ** np.random.uniform(np.log10(1e-4), np.log10(1e-2), size=10)).tolist()
+    init_wds = (10 ** np.random.uniform(np.log10(1e-5), np.log10(1e-1), size=10)).tolist()
+    init_eta_mins = np.random.uniform(0.0, 0.5, size=10).tolist()
+    
+    init_layers = [2, 2, 2, 3, 2, 2, 2, 3, 2, 2]
+    init_hsizes = [128, 32, 64, 32, 128, 32, 64, 32, 128, 64]
+    x0 = []
+    for i in range(10):
         
-        init_layers = [2, 2, 2, 3]
-        init_hsizes = [128, 32, 64, 32]
+        pt=([np.random.rand()*0.5] + [eps_max/np.random.randint(1,11) for _ in range(args.n_groups)])
         
-        for i in range(4):
-            pt = []
-            # (A) MLP Params
-            if is_tabular:
-                pt.append(init_layers[i])
-                pt.append(init_hsizes[i])
-            
-            # (B) Common Params
-            pt.append(init_lrs[i])
-            pt.append(init_wds[i])
-            pt.append(init_eta_mins[i])
-            
-            # (C) GroupDRO Param
-            if args.algorithm == 'GroupDRO':
-                pt.append(args.eta_q if args.eta_q else 0.01) # eta_q default
-            
-            x0.append(pt)
+        # 2. Init Points for Others (LR, WD...)
+
+               
+        # (A) MLP Params
+        if is_tabular:
+            pt.append(init_layers[i])
+            pt.append(init_hsizes[i])
+        
+        # (B) Common Params
+        pt.append(init_lrs[i])
+        pt.append(init_wds[i])
+        pt.append(init_eta_mins[i])
+        
+        # (C) GroupDRO Param
+        if args.algorithm == 'GroupDRO':
+            pt.append(args.eta_q if args.eta_q else 0.01) # eta_q default
+        
+        x0.append(pt)
 
     global trial_idx; trial_idx = 0
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -319,14 +319,18 @@ def run_bilevel_optimization(args, train_loader_dict, val_loader_dict, test_load
         return val_obj
 
     print(f"Starting gp_minimize with {len(x0)} initial points...")
-    if args.algorithm == 'PerGroupDRO':
+    
+    if args.dataset == 'synthetic':
+        n_calls=100
+    elif args.algorithm == 'PerGroupDRO':
         n_calls=30
     else: n_calls=50
 
-    res = gp_minimize(func=objective, dimensions=space, n_calls=n_calls, n_initial_points=0, x0=x0, acq_func="EI", xi=0.02, random_state=args.seed)
+    res = gp_minimize(func=objective, dimensions=space, n_calls=n_calls, n_initial_points=0, x0=x0, acq_func="EI", random_state=args.seed)
     
     print("\n[Bilevel] Optimization Finished."); print(f"Best Val Obj: {res.fun:.4f}")
     
     # Save Optimization History
     save_optimization_history_plot(res.func_vals, os.path.join(plot_dir, "optimization_history.png"))
     print(f" -> Optimization history plot saved to: {plot_dir}")
+
